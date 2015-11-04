@@ -8,6 +8,7 @@
 #Region Includes
 #Include <MsgBoxConstants.au3>
 #Include <Crypt.au3>
+;#Include <passwordlist.au3>
 #EndRegion Includes
 
 #Region Variables
@@ -18,8 +19,10 @@ $sEncryptText = "thisisthekey"
 #EndRegion Variables
 
 #Region Workflow
-;_RunAs("test.exe","1")
+_ImageSwitch(_GetImage())
+_RunAs("test.exe","1")
 ;_RegAdd('HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run', '"Key"="Value"')
+MsgBox($MB_SYSTEMMODAL,"Script finished!",_ImageSwitch(_GetImage()))
 ;_EncryptPassword(InputBox("Passwordencryptor","Insert password to encrypt:",$sPassword))
 ;_DecryptPassword(InputBox("Passworddecryptor","Insert password to decrypt:",$sPassword))
 #EndRegion Workflow
@@ -32,14 +35,14 @@ If $iFileSizeCheck = FileGetSize($sApplication) _
 Then
   $pid = RunAsWait($sUser,$sDomain,_DecryptPassword($sPassword),0, _
   $sApplication,@SystemDir,@SW_HIDE)
-  MsgBox($MB_SYSTEMMODAL,"Script finished!","Everything should work as ecpected.")
+  MsgBox($MB_SYSTEMMODAL,"Script finished!","Everything should work as expected.")
 Else
   InputBox("Script aborted!", _
-  "Filesize does not match or application not found:"&$iFileSizeCheck&" _
-  does not match ",FileGetSize($sApplication))
+  "Filesize does not match or application not found:"&$iFileSizeCheck& _
+  " does not match ",FileGetSize($sApplication))
   Exit
 EndIf
-EndFunc
+EndFunc;==>_RunAs
 
 Func _RegAdd($sRegFolder,$sRegKey)
   $sRegFolder = '['&$sRegFolder&']'
@@ -51,20 +54,25 @@ Func _RegAdd($sRegFolder,$sRegKey)
     RunAsWait($sUser,$sDomain,_DecryptPassword($sPassword),0, _
     @Windowsdir & '\regedit.exe /s "' & @TempDir & '\TheReg.reg"','')
   FileDelete(@Tempdir & "\TheReg.reg")
-EndFunc
+EndFunc;==>_RegAdd
+
+Func _GetImage()
+  $ComputerDescription = RegRead("HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\LanmanServer\Parameters","srvcomment")
+  Return $ComputerDescription
+EndFunc;==>_GetImage
 
 Func _EncryptPassword($sClearTextPass)
-  $sPassword = StringEncrypt(True,$sClearTextPass,$sEncryptText)
+  $sPassword = _StringEncrypt(True,$sClearTextPass,$sEncryptText)
   InputBox("Password encrypted","Your encrypted password below:",$sPassword)
-EndFunc
+EndFunc;==>_EncryptPassword
 
 Func _DecryptPassword($sEncryptedPass)
-  $sPassword = StringEncrypt(False,$sEncryptedPass,$sEncryptText)
-  InputBox("Password decrypted","Your decrypted password below:",$sPassword)
+  $sPassword = _StringEncrypt(False,$sEncryptedPass,$sEncryptText)
+  ;InputBox("Password decrypted","Your decrypted password below:",$sPassword)
   Return $sPassword
-EndFunc
+EndFunc;==>_DecryptPassword
 
-Func StringEncrypt($bEncrypt, $sData, $sPassword)
+Func _StringEncrypt($bEncrypt, $sData, $sPassword)
   _Crypt_Startup() ; Start the Crypt library.
   Local $sReturn = ''
   If $bEncrypt Then ; If the flag is set to True then encrypt, otherwise decrypt.
@@ -74,5 +82,25 @@ Func StringEncrypt($bEncrypt, $sData, $sPassword)
   EndIf
   _Crypt_Shutdown() ; Shutdown the Crypt library.
   Return $sReturn
-EndFunc   ;==>StringEncrypt
+EndFunc   ;==>_StringEncrypt
+
+#Comments-Start
+;Externalized passwordlist for security resons see passwordlist.au3
+Func _ImageSwitch($ImageName)
+  Select
+  Case $ImageName = 'Image1'
+    $sPassword = 'encryptedPassword1'
+  Case $ImageName = 'Image2'
+    $sPassword = 'encryptedPassword2'
+  Case $ImageName = 'Image3' OR $ImageName = 'Image4' OR $ImageName = 'Image5'
+    $sPassword = 'encryptedPassword3'
+  Case $ImageName = 'Image6' OR $ImageName = 'Image7'
+    $sPassword = 'encryptedPassword4'
+  Case Else
+    MsgBox ( 0, "Image-Name unknown", "The image: "& $ImageName & " is not recognized.")
+    Exit
+  EndSelect
+  Return $sPassword
+EndFunc
+#Comments-End
 #EndRegion Functions
